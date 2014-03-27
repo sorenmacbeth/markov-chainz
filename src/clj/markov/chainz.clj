@@ -23,8 +23,8 @@
   ([len tokenize-fn texts]
      (let [maps (map #(chain len (tokenize-fn %)) texts)]
        (->Chain len (apply merge-with+ maps))))
-  ([len tokenize-fn texts chains]
-     (let [maps (cons chains (map #(chain len (tokenize %)) texts))]
+  ([len tokenize-fn texts prev-chain]
+     (let [maps (cons prev-chain (map #(chain len (tokenize %)) texts))]
        (->Chain len (apply merge-with+ maps)))))
 
 (defn choose-next [chains k]
