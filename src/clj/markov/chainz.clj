@@ -7,7 +7,7 @@
 (defrecord Chain [len data])
 
 (defn space-tokenizer [s]
-  (s/split s #"\s+"))
+  (when s (s/split s #"\s+")))
 
 (defn chain [len tokens]
   (let [tokens (concat (repeat len START-TOKEN) tokens)
@@ -17,15 +17,17 @@
                      {(last x) 1}}) p)]
     (apply merge-with concat maps)))
 
-(def merge-with+ (partial merge-with #(merge-with + %1 %2)))
+(def merge-with+ (partial apply merge-with #(try
+                                              (merge-with + %1 %2)
+                                              (catch Exception _ {}))))
 
 (defn build-chain
   ([len tokenize-fn texts]
      (let [maps (map #(chain len (tokenize-fn %)) texts)]
-       (->Chain len (apply merge-with+ maps))))
+       (->Chain len (merge-with+ maps))))
   ([len tokenize-fn texts prev-chain]
-     (let [maps (cons prev-chain (map #(chain len (tokenize-fn %)) texts))]
-       (->Chain len (apply merge-with+ maps)))))
+     (let [maps (cons (:data prev-chain) (map #(chain len (tokenize-fn %)) texts))]
+       (->Chain len (merge-with+ maps)))))
 
 (defn choose-next [chains k]
   (when-let [weights (get chains k)]

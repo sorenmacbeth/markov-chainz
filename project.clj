@@ -4,7 +4,9 @@
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]
-                 [bigml/sampling "2.1.0"]]
+                 [bigml/sampling "2.1.0"]
+                 [cheshire "5.3.1"]]
   :source-paths ["src/clj"]
+  :jvm-opts ["-server" "-Xms1g" "-Xmx1g"]
   :profiles {:dev {:dependencies [[midje "1.6.3"]]
                    :plugins [[lein-midje "3.1.3"]]}})
