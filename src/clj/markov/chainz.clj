@@ -6,7 +6,7 @@
 
 (defrecord Chain [len data])
 
-(defn tokenize [s]
+(defn space-tokenizer [s]
   (s/split s #"\s+"))
 
 (defn chain [len tokens]
@@ -24,7 +24,7 @@
      (let [maps (map #(chain len (tokenize-fn %)) texts)]
        (->Chain len (apply merge-with+ maps))))
   ([len tokenize-fn texts prev-chain]
-     (let [maps (cons prev-chain (map #(chain len (tokenize %)) texts))]
+     (let [maps (cons prev-chain (map #(chain len (tokenize-fn %)) texts))]
        (->Chain len (apply merge-with+ maps)))))
 
 (defn choose-next [chains k]
