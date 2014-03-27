@@ -11,7 +11,7 @@
 
 (defn chain [len tokens]
   (let [tokens (concat (repeat len START-TOKEN) tokens)
-        p (partition (+ len 1) 1 tokens)
+        p (partition (inc len) 1 tokens)
         maps (map (fn [x]
                     {(take len x)
                      {(last x) 1}}) p)]
