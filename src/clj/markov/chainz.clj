@@ -4,7 +4,11 @@
 
 (def START-TOKEN "_*_")
 
-(defrecord Chain [len data])
+(defn write-chain [chain file]
+  (spit file (pr-str chain)))
+
+(defn read-chain [file]
+  (read-string (slurp file)))
 
 (defn space-tokenizer [s]
   (when s (s/split s #"\s+")))
@@ -24,10 +28,10 @@
 (defn build-chain
   ([len tokenize-fn texts]
      (let [maps (map #(chain len (tokenize-fn %)) texts)]
-       (->Chain len (merge-with+ maps))))
+       {:len len :data (merge-with+ maps)}))
   ([len tokenize-fn texts prev-chain]
      (let [maps (cons (:data prev-chain) (map #(chain len (tokenize-fn %)) texts))]
-       (->Chain len (merge-with+ maps)))))
+       {:len len :data (merge-with+ maps)})))
 
 (defn choose-next [chains k]
   (when-let [weights (get chains k)]
