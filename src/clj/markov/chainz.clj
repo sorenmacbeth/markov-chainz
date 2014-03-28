@@ -1,6 +1,8 @@
 (ns markov.chainz
   (:require [clojure.string :as s]
-            [bigml.sampling [simple :as simple]]))
+            [bigml.sampling [simple :as simple]]
+            [markov.chainz.slack :as slack])
+  (:gen-class))
 
 (def START-TOKEN "_*_")
 
@@ -50,3 +52,8 @@
        (if-not (or (nil? w) (zero? n))
          (recur nk nacc (dec n))
          (s/join " " acc))))))
+
+(defn -main [input-dir output len max-files]
+  (write-chain
+   (build-chain len space-tokenizer (slack/get-texts input-dir))
+   output))
