@@ -1,4 +1,4 @@
-(ns markov.chainz.web
+(ns markov.chainz.slakov
   (:require [cheshire.core :as json]
             [clojure.java.io :as io]
             [compojure.core :refer [POST defroutes]]
@@ -25,10 +25,16 @@
 
 (defn maybe-message [req]
   (let [form-params (:form-params req)
+        text (get form-params "text")
+        username (get form-params "user_name")
         updater (future
-                  (chainz/write-chain
-                   (update-chain @chain (get form-params "text")) (:chains req)))]
-    (if (<= (rand-int 100) 15)
+                  (when-not (or (.startsWith text "@slakov")
+                                (= username "slackbot"))
+                    (chainz/write-chain
+                     (update-chain @chain text) (:chains req))))]
+    (if (or
+         (.startsWith text "@slakov")
+         (<= (rand-int 100) 15))
       {:status 200
        :headers {"Content-Type" "application/json"}
        :body (try
@@ -36,20 +42,8 @@
                (catch Exception _ nil))}
       {:status 200})))
 
-(defn send-message [req]
-  (let [form-params (:form-params req)
-        updater (future
-                  (chainz/write-chain
-                   (update-chain @chain (get form-params "text")) (:chains req)))]
-    {:status 200
-     :headers {"Content-Type" "application/json"}
-     :body (try
-             (json/generate-string {"text" (chainz/generate-text @chain 100)})
-             (catch Exception _ nil))}))
-
 (defroutes app-routes
   (POST "/slakov" [] maybe-message)
-  (POST "/slakov/sup" [] send-message)
   (route/resources "/")
   (route/not-found "Not Found"))
 

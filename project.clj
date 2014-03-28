@@ -11,10 +11,7 @@
                  ]
   :source-paths ["src/clj"]
   :jvm-opts ["-server" "-Xms1g" "-Xmx1g"]
-  :main markov.chainz.web
-  :ring {:handler markov.chainz.web/app}
-  :profiles {:dev {:dependencies [[midje "1.6.3"]
-                                  [ring-mock "0.1.5"]]
-                   :plugins [[lein-midje "3.1.3"]
-                             [lein-ring "0.8.10"]]}
+  :main markov.chainz.slakov
+  :profiles {:dev {:dependencies [[midje "1.6.3"]]
+                   :plugins [[lein-midje "3.1.3"]]}
              :uberjar {:aot :all}})
