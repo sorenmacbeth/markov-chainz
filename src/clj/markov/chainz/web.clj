@@ -19,22 +19,37 @@
                    chainz/space-tokenizer
                    [text]
                    chain)]
+    (println (format "updating chain with: %s" text))
     (reset! chain new-chain)
     new-chain))
 
-(defn handle-message [req]
+(defn maybe-message [req]
   (let [form-params (:form-params req)
         updater (future
-                  (chainz/write-chain (update-chain @chain (get form-params "text")) (:chains req)))]
+                  (chainz/write-chain
+                   (update-chain @chain (get form-params "text")) (:chains req)))]
     (if (<= (rand-int 100) 15)
       {:status 200
        :headers {"Content-Type" "application/json"}
-       :body (json/generate-string {"text" (chainz/generate-text @chain 100)})
-       }
+       :body (try
+               (json/generate-string {"text" (chainz/generate-text @chain 100)})
+               (catch Exception _ nil))}
       {:status 200})))
 
+(defn send-message [req]
+  (let [form-params (:form-params req)
+        updater (future
+                  (chainz/write-chain
+                   (update-chain @chain (get form-params "text")) (:chains req)))]
+    {:status 200
+     :headers {"Content-Type" "application/json"}
+     :body (try
+             (json/generate-string {"text" (chainz/generate-text @chain 100)})
+             (catch Exception _ nil))}))
+
 (defroutes app-routes
-  (POST "/slakov" [] handle-message)
+  (POST "/slakov" [] maybe-message)
+  (POST "/slakov/sup" [] send-message)
   (route/resources "/")
   (route/not-found "Not Found"))
 
