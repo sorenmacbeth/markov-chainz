@@ -30,16 +30,21 @@
         updater (future
                   (when-not (or (.startsWith text "@slakov")
                                 (= username "slackbot"))
-                    (chainz/write-chain
-                     (update-chain @chain text) (:chains req))))]
+                    (try
+                      (chainz/write-chain
+                       (update-chain @chain text) (:chains req))
+                      (catch Exception e
+                        (println (format "error updating chain with %s: %s" text e))))))]
     (if (or
          (.startsWith text "@slakov")
          (<= (rand-int 100) 15))
-      {:status 200
-       :headers {"Content-Type" "application/json"}
-       :body (try
-               (json/generate-string {"text" (chainz/generate-text @chain 100)})
-               (catch Exception _ nil))}
+      (try
+        {:status 200
+         :headers {"Content-Type" "application/json"}
+         :body (json/generate-string {"text" (chainz/generate-text @chain 100)})}
+        (catch Exception e
+          (println (format "error generating text: %s" e))
+          {:status 200}))
       {:status 200})))
 
 (defroutes app-routes
