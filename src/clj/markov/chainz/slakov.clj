@@ -32,8 +32,8 @@
                   (when-not (or (.startsWith text "@slakov")
                                 (= username "slackbot"))
                     (try
-                      (let [new-chain (update-chain @chain text) (:chains req)]
-                        (chainz/write-chain @new-chain))
+                      (let [new-chain (update-chain @chain text)]
+                        (chainz/write-chain @new-chain (:chains req)))
                       (catch Exception e
                         (println (format "error updating chain with %s: %s" text e))))))]
     (if (or
