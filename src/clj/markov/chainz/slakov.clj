@@ -11,14 +11,15 @@
 (def chain (atom {}))
 
 (defn boot-chain [path]
+  (println (format "booting chain from %s" path))
   (reset! chain (chainz/read-chain path)))
 
-(defn update-chain [chain text]
+(defn update-chain [old-chain text]
   (let [new-chain (chainz/build-chain
-                   (:len chain)
+                   (:len old-chain)
                    chainz/space-tokenizer
                    [text]
-                   chain)]
+                   old-chain)]
     (println (format "updating chain with: %s" text))
     (reset! chain new-chain)
     new-chain))
@@ -31,8 +32,8 @@
                   (when-not (or (.startsWith text "@slakov")
                                 (= username "slackbot"))
                     (try
-                      (chainz/write-chain
-                       (update-chain @chain text) (:chains req))
+                      (let [new-chain (update-chain @chain text) (:chains req)]
+                        (chainz/write-chain @new-chain))
                       (catch Exception e
                         (println (format "error updating chain with %s: %s" text e))))))]
     (if (or
