@@ -24,22 +24,20 @@
     (reset! chain new-chain)
     new-chain))
 
-(defn maybe-message [req]
-  (let [form-params (:form-params req)
-        text (get form-params "text")
-        username (get form-params "user_name")
-        updater (future
+(defn maybe-message [text username channel-name chain-path]
+  (let [updater (future
                   (when-not (or (.startsWith text "@slakov")
                                 (= username "slackbot"))
                     (try
                       (chainz/write-chain
                        (update-chain @chain text)
-                       (:chains req))
+                       chain-path)
                       (catch Exception e
                         (println (format "error updating chain with %s: %s" text e))))))]
-    (if (or
-         (.startsWith text "@slakov")
-         (<= (rand-int 100) 15))
+    (if (and (= channel-name "general")
+             (or
+              (.startsWith text "@slakov")
+              (<= (rand-int 100) 15)))
       (try
         {:status 200
          :headers {"Content-Type" "application/json"}
@@ -50,7 +48,13 @@
       {:status 200})))
 
 (defroutes app-routes
-  (POST "/slakov" [] maybe-message)
+  (POST "/slakov" [text user_name channel_name chain :as req]
+        (if (and text user_name channel_name)
+          (try
+            (maybe-message text user_name channel_name chain)
+            (catch Exception e
+              (println (format "error processing message %s: %s" req e))))
+          (println (format "missing required field in message %s" req))))
   (route/resources "/")
   (route/not-found "Not Found"))
 
