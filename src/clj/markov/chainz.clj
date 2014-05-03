@@ -35,23 +35,24 @@
      (let [maps (cons (:data prev-chain) (map #(chain len (tokenize-fn %)) texts))]
        {:len len :data (merge-with+ maps)})))
 
-(defn choose-next [chains k]
-  (when-let [weights (get chains k)]
-    (let [choices (keys weights)]
-      (first (simple/sample choices :weigh weights)))))
+(defn choose-next [chain k]
+  (when-let [weights (get chain k)]
+    (when (map? weights)
+      (let [choices (keys weights)]
+        (first (simple/sample choices :weigh weights))))))
 
 (defn generate-text [chain max-words]
   (let [len (:len chain)
         chain (:data chain)]
     (loop [k (repeat len START-TOKEN)
-          acc []
-          n max-words]
-     (let [w (choose-next chain k)
-           nacc (concat acc [w])
-           nk (concat (reverse (take (dec len) (reverse k))) [w])]
-       (if-not (or (nil? w) (zero? n))
-         (recur nk nacc (dec n))
-         (s/join " " acc))))))
+           acc []
+           n max-words]
+      (let [w (choose-next chain k)
+            nacc (concat acc [w])
+            nk (concat (reverse (take (dec len) (reverse k))) [w])]
+        (if-not (or (nil? w) (zero? n))
+          (recur nk nacc (dec n))
+          (s/join " " acc))))))
 
 (defn -main [input-dir output len max-files]
   (write-chain

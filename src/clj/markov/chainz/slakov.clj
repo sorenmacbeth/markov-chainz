@@ -15,11 +15,11 @@
   (reset! chain (chainz/read-chain path)))
 
 (defn update-chain [old-chain text]
-  (let [new-chain (chainz/build-chain
-                   (:len old-chain)
-                   chainz/space-tokenizer
-                   [text]
-                   old-chain)]
+  (when-let [new-chain (chainz/build-chain
+                        (:len old-chain)
+                        chainz/space-tokenizer
+                        [text]
+                        old-chain)]
     (println (format "updating chain with: %s" text))
     (reset! chain new-chain)
     new-chain))
@@ -48,29 +48,28 @@
       {:status 200})))
 
 (defroutes app-routes
-  (POST "/slakov" [text user_name channel_name chain :as req]
+  (POST "/slakov" [text user_name channel_name :as req]
         (if (and text user_name channel_name)
           (try
-            (maybe-message text user_name channel_name chain)
+            (maybe-message text user_name channel_name (:chain req))
             (catch Exception e
               (println (format "error processing message %s: %s" req e))))
           (println (format "missing required field in message %s" req))))
   (route/resources "/")
   (route/not-found "Not Found"))
 
-(defn wrap-chain [app chains]
+(defn wrap-chain [app chain]
   (fn [req]
-    (app (assoc req :chains chains))))
+    (app (assoc req :chain chain))))
 
-(defn app [chains]
+(defn app [chain]
   (-> app-routes
-      (wrap-chain chains)
+      (wrap-chain chain)
       (handler/api)))
 
-(defn -main [& [port chains]]
+(defn -main [& [port chain]]
   (let [port (Integer. (or port 8000))
-        chains (or chains "/tmp/markovchains")]
-    ;; (alter-var-root (var chain) #(reset! % (chainz/read-chain chains)))
-    (boot-chain chains)
-    (jetty/run-jetty (app chains)
+        chain (or chain "/tmp/markovchains")]
+    (boot-chain chain)
+    (jetty/run-jetty (app chain)
                      {:port port :join? false})))
