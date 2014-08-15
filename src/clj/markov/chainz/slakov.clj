@@ -38,13 +38,21 @@
              (or
               (.startsWith text "@slakov")
               (<= (rand-int 100) 15)))
-      (try
-        {:status 200
-         :headers {"Content-Type" "application/json"}
-         :body (json/generate-string {"text" (chainz/generate-text @chain 100)})}
-        (catch Exception e
-          (println (format "error generating text: %s" e))
-          {:status 200}))
+      (if (.contains (.toLowerCase text) "campari")
+        (try
+          {:status 200
+           :headers {"Content-Type" "application/json"}
+           :body (json/generate-string {"text" "http://www.campari.com/media/9286/ontherocks.png"})}
+          (catch Exception e
+            (println (format "error getting campari: %s" e))
+            {:status 200}))
+        (try
+               {:status 200
+                :headers {"Content-Type" "application/json"}
+                :body (json/generate-string {"text" (chainz/generate-text @chain 25)})}
+               (catch Exception e
+                 (println (format "error generating text: %s" e))
+                 {:status 200})))
       {:status 200})))
 
 (defroutes app-routes
