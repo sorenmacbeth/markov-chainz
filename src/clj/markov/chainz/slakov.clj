@@ -5,10 +5,18 @@
             [compojure.route :as route]
             [compojure.handler :as handler]
             [markov.chainz :as chainz]
-            [ring.adapter.jetty :as jetty])
+            [ring.adapter.jetty :as jetty]
+            [clojure.tools.cli :refer [parse-opts]]
+            [environ.core :refer [env]])
   (:gen-class))
 
 (def chain (atom {}))
+
+(println env)
+
+(def BOT-NAME (env :bot-name))
+(def LISTEN-CHANNEL (env :listen-channel))
+(def UPDATE-CHAIN (Boolean/valueOf (env :update-chain)))
 
 (defn boot-chain [path]
   (println (format "booting chain from %s" path))
@@ -24,26 +32,28 @@
     (reset! chain new-chain)
     new-chain))
 
-(defn maybe-message [text username channel-name chain-path]
-  (let [updater (future
-                  (when-not (or (.startsWith text "@slakov")
-                                (= username "slackbot"))
-                    (try
-                      (chainz/write-chain
-                       (update-chain @chain text)
-                       chain-path)
-                      (catch Exception e
-                        (println (format "error updating chain with %s: %s" text e))))))]
-    (if (and (= channel-name "general")
+(defn maybe-message [text username channel-name chain-path update?]
+  (let [updater (when update?
+                  (future
+                    (when-not (or (.startsWith text (str "@" BOT-NAME))
+                                  (= username "slackbot"))
+                      (try
+                        (chainz/write-chain
+                         (update-chain @chain text)
+                         chain-path)
+                        (catch Exception e
+                          (println (format "error updating chain with %s: %s" text e)))))))]
+    (if (and (= channel-name LISTEN-CHANNEL)
              (or
-              (.startsWith text "@slakov")
+              (.startsWith text (str "@" BOT-NAME))
               (<= (rand-int 100) 15)))
+      ;; TODO: load a map of keyword/response out of resources/
       (cond
        (.contains (.toLowerCase text) "campari")
        (try
          {:status 200
           :headers {"Content-Type" "application/json"}
-          :body (json/generate-string {"text" "http://www.campari.com/media/9286/ontherocks.png"})}
+          :body (json/generate-string {"text" "http://media.giphy.com/media/X91oeDLYRhHEs/giphy.gif"})}
          (catch Exception e
            (println (format "error getting campari: %s" e))
            {:status 200}))
@@ -69,7 +79,7 @@
   (POST "/slakov" [text user_name channel_name :as req]
         (if (and text user_name channel_name)
           (try
-            (maybe-message text user_name channel_name (:chain req))
+            (maybe-message text user_name channel_name (:chain req) (read-string UPDATE-CHAIN))
             (catch Exception e
               (println (format "error processing message %s: %s" req e))))
           (println (format "missing required field in message %s" req))))
@@ -85,9 +95,15 @@
       (wrap-chain chain)
       (handler/api)))
 
-(defn -main [& [port chain]]
-  (let [port (Integer. (or port 8000))
-        chain (or chain "/tmp/markovchains")]
-    (boot-chain chain)
-    (jetty/run-jetty (app chain)
-                     {:port port :join? false})))
+(def cli-options
+  [["-p" "--port PORT" "Port Number"
+    :default 8000
+    :parse-fn #(Integer/parseInt %)]
+   ["-c" "--chain PATH" "Chain Database Path"
+    :default "/tmp/markovchains"]])
+
+(defn -main [& args]
+  (let [{:keys [options arguments summary errors]} (parse-opts args cli-options)]
+    (boot-chain (:chain options))
+    (jetty/run-jetty (app (:chain options))
+                     {:port (:port options) :join? false})))

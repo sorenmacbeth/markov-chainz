@@ -1,7 +1,8 @@
 (ns markov.chainz
   (:require [clojure.string :as s]
             [bigml.sampling [simple :as simple]]
-            [markov.chainz.slack :as slack])
+            [markov.chainz.slack :as slack]
+            [clojure.tools.cli :refer [parse-opts]])
   (:gen-class))
 
 (def START-TOKEN "_*_")
@@ -54,7 +55,20 @@
           (recur nk nacc (dec n))
           (s/join " " acc))))))
 
-(defn -main [input-dir output len max-files]
-  (write-chain
-   (build-chain len space-tokenizer (slack/get-texts input-dir))
-   output))
+(def cli-options
+  [["-i" "--input PATH" "Input Path"]
+   ["-o" "--output FILE" "Output File"]
+   ["-l" "--token-length N" "Token Length"
+    :default 2
+    :parse-fn #(Integer/parseInt %)]
+   ["-f" "--filter-predicate PRED" "Filter predicate"
+    :default nil
+    :parse-fn #(read-string %)]])
+
+(defn -main [& args]
+  (let [{:keys [options args summary errors]} (parse-opts args cli-options)]
+    (write-chain
+     (build-chain (:token-length options)
+                  space-tokenizer
+                  (slack/get-texts (:input options) :filterp (:filter-predicate options)))
+     (:output options))))

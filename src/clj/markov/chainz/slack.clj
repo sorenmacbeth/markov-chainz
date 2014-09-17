@@ -5,9 +5,12 @@
 (defn json-file? [file]
   (.endsWith (.getName file) ".json"))
 
-(defn get-texts [dir num]
+(defn get-texts [dir & {:keys [max-files filterp]}]
   (let [dir (io/file dir)
         files (filter json-file? (file-seq dir))
-        lines (map #(json/parse-string (slurp %) true) (take num files))]
-    (map :text
-         (apply concat lines))))
+        lines (apply concat (map #(json/parse-string (slurp %) true) (if max-files
+                                                                       (take num files)
+                                                                       files)))]
+    (map :text (if filterp
+                 (filter filterp lines)
+                 lines))))
