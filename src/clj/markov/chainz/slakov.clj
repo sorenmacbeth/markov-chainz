@@ -15,6 +15,8 @@
 (def BOT-NAME (env :bot-name))
 (def LISTEN-CHANNEL (env :listen-channel))
 (def UPDATE-CHAIN (Boolean/valueOf (env :update-chain)))
+(def SPEAK-PROBABILITY (env :speak-probability))
+(def MAX-WORDS (env :max-words))
 
 (defn boot-chain [path]
   (println (format "booting chain from %s" path))
@@ -44,7 +46,7 @@
     (if (and (= channel-name LISTEN-CHANNEL)
              (or
               (.startsWith text (str "@" BOT-NAME))
-              (<= (rand-int 100) 15)))
+              (<= (rand-int 100) SPEAK-PROBABILITY)))
       ;; TODO: load a map of keyword/response out of resources/
       (cond
        (.contains (.toLowerCase text) "campari")
@@ -67,7 +69,7 @@
        (try
          {:status 200
           :headers {"Content-Type" "application/json"}
-          :body (json/generate-string {"text" (chainz/generate-text @chain 25)})}
+          :body (json/generate-string {"text" (chainz/generate-text @chain MAX-WORDS)})}
          (catch Exception e
            (println (format "error generating text: %s" e))
            {:status 200})))
@@ -77,7 +79,7 @@
   (POST "/slakov" [text user_name channel_name :as req]
         (if (and text user_name channel_name)
           (try
-            (maybe-message text user_name channel_name (:chain req) (read-string UPDATE-CHAIN))
+            (maybe-message text user_name channel_name (:chain req) UPDATE-CHAIN)
             (catch Exception e
               (println (format "error processing message %s: %s" req e))))
           (println (format "missing required field in message %s" req))))
