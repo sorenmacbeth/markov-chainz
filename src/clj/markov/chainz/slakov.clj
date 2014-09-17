@@ -15,8 +15,8 @@
 (def BOT-NAME (env :bot-name))
 (def LISTEN-CHANNEL (env :listen-channel))
 (def UPDATE-CHAIN (Boolean/valueOf (env :update-chain)))
-(def SPEAK-PROBABILITY (env :speak-probability))
-(def MAX-WORDS (env :max-words))
+(def SPEAK-PROBABILITY (Integer/parseInt (env :speak-probability)))
+(def MAX-WORDS (Integer/parseInt (env :max-words)))
 
 (defn boot-chain [path]
   (println (format "booting chain from %s" path))

@@ -18,5 +18,7 @@
                              [lein-environ "1.0.0"]]
                    :env {:bot-name "slakov"
                          :listen-channel "general"
-                         :update-chain "true"}}
+                         :update-chain "true"
+                         :speak-probability "15"
+                         :max-words "25"}}
              :uberjar {:aot :all}})
