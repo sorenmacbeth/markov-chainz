@@ -12,8 +12,6 @@
 
 (def chain (atom {}))
 
-(println env)
-
 (def BOT-NAME (env :bot-name))
 (def LISTEN-CHANNEL (env :listen-channel))
 (def UPDATE-CHAIN (Boolean/valueOf (env :update-chain)))
