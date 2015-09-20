@@ -34,8 +34,7 @@
     new-chain))
 
 (defn maybe-speak [chain-path update? {:keys [type text channel user ts] :as event}]
-  (let [all-emoji (concat slack/emoji (->> (slack/emoji-list SLACK-TOKEN) keys (map name)))
-        self-id (team/self-id)
+  (let [self-id (team/self-id)
         me? (= user self-id)]
     (when (and
            (= type "message")
@@ -53,13 +52,13 @@
                               (println (format "error updating chain with %s: %s" text e)))))))]
         (when (or mention?
                   (<= (rand-int 100) SPEAK-PROBABILITY))
-          (let [balderdash (chainz/generate-text @chain MAX-WORDS)
-                emoji (first (simple/sample all-emoji))]
+          (let [balderdash (chainz/generate-text @chain MAX-WORDS)]
             (if (< (mod (rand-int 100) 2) 1)
               (do
                (println "saying:" balderdash)
                (slack/chat-post-message SLACK-TOKEN channel balderdash :as_user true))
-              (do
+              (let [all-emoji (concat slack/emoji (->> (slack/emoji-list SLACK-TOKEN) keys (map name)))
+                    emoji (first (simple/sample all-emoji))]
                 (println "adding reaction:" emoji)
                 (slack/reactions-add SLACK-TOKEN emoji channel ts)))))))))
 
