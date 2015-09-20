@@ -88,8 +88,8 @@
                         (println "reconnecting..."))
                       (disconnect)
                       (connect api-token handle-event-fn options))]
-     (s/connect-via rx-event-stream rx/handle-event slakov-event-stream)
-     (s/connect-via rx-event-stream rx/handle-event chain-event-stream)
+     (s/connect-via rx-event-stream #(s/put! slakov-event-stream (rx/handle-event %)) slakov-event-stream)
+     (s/connect-via rx-event-stream #(s/put! chain-event-stream (rx/handle-event %)) chain-event-stream)
      (s/consume handle-event-fn slakov-event-stream)
      (s/consume write-chain chain-event-stream)
      (rtm/start-real-time! api-token team/team-state! #(s/put! rx-event-stream %) reconnect options))))

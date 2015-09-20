@@ -39,7 +39,7 @@
                     (future
                       (loop []
                         (if (time/after? (time/now)
-                                         (time/plus @last-pong-time (time/seconds 10)))
+                                         (time/plus @last-pong-time (time/seconds 30)))
                           (future (*reconnect*))
                           (do (Thread/sleep 5000)
                               (send-message ping-message)

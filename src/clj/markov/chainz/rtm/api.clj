@@ -893,9 +893,7 @@
   (let [response-body-bytes (:body http-response)
         response-body-json (bs/to-string response-body-bytes)
         api-response (json/parse-string response-body-json true)]
-    (if-not (:ok api-response)
-      (println "got error:" api-response)
-      api-response)))
+    api-response))
 
 (defn api-request
   ([method-name]
