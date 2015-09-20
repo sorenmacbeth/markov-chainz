@@ -1,19 +1,19 @@
 (ns markov.chainz.rtm.receive
   (:require [markov.chainz.rtm.team :as state]))
 
-(defn dispatch-handle-event [event handle-fn] (:type event))
+(defn dispatch-handle-event [event] (:type event))
 
 (defmulti handle-event dispatch-handle-event)
 
 (defmethod handle-event "message"
-  [event handle-fn]
-  (handle-fn event))
+  [event]
+  event)
 
 (defmethod handle-event "channel_joined"
-  [event handle-fn]
+  [event]
   (state/channel-joined (:channel event))
-  (handle-fn event))
+  event)
 
 (defmethod handle-event :default
-  [event handle-fn]
-  (handle-fn event))
+  [event]
+  event)
