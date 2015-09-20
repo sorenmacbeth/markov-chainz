@@ -7,6 +7,7 @@
             [cheshire.core :as json]
             [clojure.java.io :as io]
             [manifold.stream :as s]
+            [bigml.sampling.simple :as simple]
             [clojure.tools.cli :refer [parse-opts]]
             [environ.core :refer [env]])
   (:gen-class))
@@ -32,8 +33,9 @@
     (reset! chain new-chain)
     new-chain))
 
-(defn maybe-speak [chain-path update? {:keys [type text channel user] :as event}]
-  (let [self-id (team/self-id)
+(defn maybe-speak [chain-path update? {:keys [type text channel user ts] :as event}]
+  (let [all-emoji (concat slack/emoji (->> (slack/emoji-list SLACK-TOKEN) keys (map name)))
+        self-id (team/self-id)
         me? (= user self-id)]
     (when (and
            (= type "message")
@@ -51,10 +53,15 @@
                               (println (format "error updating chain with %s: %s" text e)))))))]
         (when (or mention?
                   (<= (rand-int 100) SPEAK-PROBABILITY))
-          (let [balderdash (chainz/generate-text @chain MAX-WORDS)]
-            (do
-              (println "saying:" balderdash)
-              (slack/chat-post-message SLACK-TOKEN channel balderdash :as_user true))))))))
+          (let [balderdash (chainz/generate-text @chain MAX-WORDS)
+                emoji (first (simple/sample all-emoji))]
+            (if (< (mod (rand-int 100) 2) 1)
+              (do
+               (println "saying:" balderdash)
+               (slack/chat-post-message SLACK-TOKEN channel balderdash :as_user true))
+              (do
+                (println "adding reaction:" emoji)
+                (slack/reactions-add SLACK-TOKEN emoji channel ts)))))))))
 
 (def disconnect rtm/stop-real-time!)
 
