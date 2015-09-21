@@ -11,6 +11,7 @@
             [clj-time.core :as time]
             [clj-time.coerce :as coerce]
             [markov.chainz.rocksdb :as rocks]
+            [manifold.deferred :as d]
             [clojure.tools.cli :refer [parse-opts]]
             [environ.core :refer [env]])
   (:import [markov.chainz Utils])
@@ -23,6 +24,7 @@
 
 (def chain (atom {}))
 (def chain-db (atom nil))
+(def emoji-names nil)
 
 (def ^:dynamic *chain-path*)
 
@@ -75,7 +77,11 @@
                 (do
                   (println "saying:" balderdash)
                   (slack/chat-post-message SLACK-TOKEN channel balderdash :as_user true))
-                (let [all-emoji (concat slack/emoji (->> (slack/emoji-list SLACK-TOKEN) keys (map name)))
+                (let [team-emoji @(d/chain
+                                   (slack/emoji-list SLACK-TOKEN)
+                                   keys
+                                   #(map name %))
+                      all-emoji (concat slack/emoji)
                       emoji (first (simple/sample all-emoji))]
                   (println "adding reaction:" emoji)
                   (slack/reactions-add SLACK-TOKEN emoji channel ts))))))))))

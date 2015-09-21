@@ -72,7 +72,7 @@
   [api-token set-team-state pass-event-to-rx reconnect options]
   (alter-var-root (var *reconnect*) (constantly reconnect))
   (alter-var-root (var *options*) (constantly options))
-  (let [response-body (api/rtm-start api-token)
+  (let [response-body @(api/rtm-start api-token)
         ws-url (:url response-body)
         ws-stream (connect-websocket-stream ws-url)]
     (set-team-state response-body)
