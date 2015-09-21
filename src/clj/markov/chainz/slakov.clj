@@ -10,8 +10,10 @@
             [bigml.sampling.simple :as simple]
             [clj-time.core :as time]
             [clj-time.coerce :as coerce]
+            [markov.chainz.rocksdb :as rocks]
             [clojure.tools.cli :refer [parse-opts]]
             [environ.core :refer [env]])
+  (:import [markov.chainz Utils])
   (:gen-class))
 
 (def SLACK-TOKEN (env :slack-token))
@@ -20,8 +22,14 @@
 (def MAX-WORDS (Integer/parseInt (env :max-words "25")))
 
 (def chain (atom {}))
+(def chain-db (atom nil))
 
 (def ^:dynamic *chain-path*)
+
+(defn boot-chain-db [path]
+  (println (format "booting chain db from '%s'" path))
+  (reset! chain-db (rocks/open path))
+  (reset! chain (chainz/read-chain-db @chain-db)))
 
 (defn boot-chain [path]
   (println (format "booting chain from '%s'" path))
@@ -34,8 +42,7 @@
                         [text]
                         old-chain)]
     (println (format "updating chain with: %s" text))
-    (reset! chain new-chain)
-    new-chain))
+    (reset! chain new-chain)))
 
 (defn write-chain [{:keys [type text channel user ts] :as event}]
   (when UPDATE-CHAIN
@@ -48,9 +55,8 @@
                       mention?
                       (team/bot? user))
           (try
-            (chainz/write-chain
-             (update-chain @chain text)
-             *chain-path*)
+            (update-chain @chain text)
+            (chainz/write-chain-db @chain-db @chain)
             (let [end-time (coerce/to-long (time/now))]
               (println (format "wrote chain in %d" (- end-time start-time))))
             (catch Exception e
@@ -101,5 +107,5 @@
 (defn -main [& args]
   (let [{:keys [options arguments summary errors]} (parse-opts args cli-options)]
     (alter-var-root (var *chain-path*) (constantly (:chain options)))
-    (boot-chain *chain-path*)
+    (boot-chain-db *chain-path*)
     (connect SLACK-TOKEN maybe-speak)))

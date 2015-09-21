@@ -10,8 +10,12 @@
                  [aleph "0.4.0"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [clj-time "0.11.0"]
+                 [org.rocksdb/rocksdbjni "3.13.1"]
+                 [com.twitter/carbonite "1.4.0"]
+                 [com.twitter/chill-java "0.5.0"]
                  [environ "1.0.0"]]
   :source-paths ["src/clj"]
+  :java-source-paths ["src/jvm"]
   :jvm-opts ["-Xmx4g"]
   :main markov.chainz.slakov
   :profiles {:dev {:dependencies [[midje "1.7.0"]]

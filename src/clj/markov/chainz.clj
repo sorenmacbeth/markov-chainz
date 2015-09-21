@@ -2,10 +2,21 @@
   (:require [clojure.string :as s]
             [bigml.sampling [simple :as simple]]
             [markov.chainz.slack :as slack]
+            [markov.chainz.rocksdb :as rocks]
             [clojure.tools.cli :refer [parse-opts]])
+  (:import [markov.chainz Utils])
   (:gen-class))
 
 (def START-TOKEN "_*_")
+
+(defn write-chain-db [db chain]
+  (let [serialize #(Utils/serialize %)]
+    (rocks/put db (serialize "slakov") (serialize chain))))
+
+(defn read-chain-db [db]
+  (let [serialize #(Utils/serialize %)
+        deserialize #(Utils/deserialize %)]
+    (deserialize (rocks/get db (serialize "slakov")))))
 
 (defn write-chain [chain file]
   (spit file (pr-str chain)))
