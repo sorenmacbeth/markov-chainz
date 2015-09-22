@@ -48,14 +48,17 @@
 
 (defn write-chain [{:keys [type text channel user ts] :as event}]
   (when UPDATE-CHAIN
-    (when (= type "message")
+    (when (and
+           (= type "message")
+           (not= (:subtype event) "bot_message"))
       (let [start-time (coerce/to-long (time/now))
             self-id (team/self-id)
             me? (= user self-id)
             mention? (.startsWith text (str "<@" self-id ">"))]
         (when-not (or me?
                       mention?
-                      (team/bot? user))
+                      (team/bot? user)
+                      (nil? text))
           (try
             (update-chain @chain text)
             (chainz/write-chain-db @chain-db @chain)
@@ -76,15 +79,19 @@
               (if (< (mod (rand-int 100) 2) 1)
                 (do
                   (println "saying:" balderdash)
-                  (slack/chat-post-message SLACK-TOKEN channel balderdash :as_user true))
-                (let [team-emoji @(d/chain
-                                   (slack/emoji-list SLACK-TOKEN)
-                                   keys
-                                   #(map name %))
+                  (-> (slack/chat-post-message SLACK-TOKEN channel balderdash :as_user true)
+                      (d/catch #(println "unable to post message:" %))))
+                (let [team-emoji @(->
+                                   (d/chain
+                                    (slack/emoji-list SLACK-TOKEN)
+                                    keys
+                                    #(map name %))
+                                   (d/catch #(println "unable to get team emoji:" %)))
                       all-emoji (concat slack/emoji)
                       emoji (first (simple/sample all-emoji))]
                   (println "adding reaction:" emoji)
-                  (slack/reactions-add SLACK-TOKEN emoji channel ts))))))))))
+                  (-> (slack/reactions-add SLACK-TOKEN emoji channel ts)
+                      (d/catch #(println "unable to add reaction:" %))))))))))))
 
 (def disconnect rtm/stop-real-time!)
 
