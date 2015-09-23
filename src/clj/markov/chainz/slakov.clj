@@ -47,51 +47,57 @@
     (reset! chain new-chain)))
 
 (defn write-chain [{:keys [type text channel user ts] :as event}]
-  (when UPDATE-CHAIN
-    (when (and
-           (= type "message")
-           (not= (:subtype event) "bot_message")
-           (not (empty? text)))
-      (let [start-time (coerce/to-long (time/now))
-            self-id (team/self-id)
-            me? (= user self-id)
-            mention? (.startsWith text (str "<@" self-id ">"))]
-        (when-not (or me?
-                      mention?
-                      (team/bot? user))
-          (try
-            (update-chain @chain text)
-            (chainz/write-chain-db @chain-db @chain)
-            (let [end-time (coerce/to-long (time/now))]
-              (println (format "wrote chain in %d" (- end-time start-time))))
-            (catch Exception e
-              (println (format "error updating chain with %s: %s" text e)))))))))
+  (try
+    (when-not (some empty? [type text channel user ts])
+     (when UPDATE-CHAIN
+       (when (and
+              (= type "message")
+              (not= (:subtype event) "bot_message")
+              (not (empty? text)))
+         (let [start-time (coerce/to-long (time/now))
+               self-id (team/self-id)
+               me? (= user self-id)
+               mention? (.startsWith text (str "<@" self-id ">"))]
+           (when-not (or me?
+                         mention?
+                         (team/bot? user))
+             (try
+               (update-chain @chain text)
+               (chainz/write-chain-db @chain-db @chain)
+               (let [end-time (coerce/to-long (time/now))]
+                 (println (format "wrote chain in %d" (- end-time start-time))))
+               (catch Exception e
+                 (println (format "error updating chain with %s: %s" text e)))))))))
+    (catch Exception e (println "exception in write-chain:" e))))
 
 (defn maybe-speak [{:keys [type text channel user ts] :as event}]
-  (when (= type "message")
-    (let [self-id (team/self-id)
-          me? (= user self-id)]
-      (when (not me?)
-        (let [mention? (.startsWith text (str "<@" self-id ">"))]
-          (when (or mention?
-                    (<= (rand-int 100) SPEAK-PROBABILITY))
-            (let [balderdash (chainz/generate-text @chain MAX-WORDS)]
-              (if (< (mod (rand-int 100) 2) 1)
-                (do
-                  (println "saying:" balderdash)
-                  (-> (slack/chat-post-message SLACK-TOKEN channel balderdash :as_user true)
-                      (d/catch #(println "unable to post message:" %))))
-                (let [team-emoji @(->
-                                   (d/chain
-                                    (slack/emoji-list SLACK-TOKEN)
-                                    keys
-                                    #(map name %))
-                                   (d/catch #(println "unable to get team emoji:" %)))
-                      all-emoji (concat slack/emoji)
-                      emoji (first (simple/sample all-emoji))]
-                  (println "adding reaction:" emoji)
-                  (-> (slack/reactions-add SLACK-TOKEN emoji channel ts)
-                      (d/catch #(println "unable to add reaction:" %))))))))))))
+  (try
+    (when-not (some empty? [type text channel user ts])
+     (when (= type "message")
+       (let [self-id (team/self-id)
+             me? (= user self-id)]
+         (when (not me?)
+           (let [mention? (.startsWith text (str "<@" self-id ">"))]
+             (when (or mention?
+                       (<= (rand-int 100) SPEAK-PROBABILITY))
+               (let [balderdash (chainz/generate-text @chain MAX-WORDS)]
+                 (if (< (mod (rand-int 100) 2) 1)
+                   (do
+                     (println "saying:" balderdash)
+                     (-> (slack/chat-post-message SLACK-TOKEN channel balderdash :as_user true)
+                         (d/catch #(println "unable to post message:" %))))
+                   (let [team-emoji @(->
+                                      (d/chain
+                                       (slack/emoji-list SLACK-TOKEN)
+                                       keys
+                                       #(map name %))
+                                      (d/catch #(println "unable to get team emoji:" %)))
+                         all-emoji (concat slack/emoji)
+                         emoji (first (simple/sample all-emoji))]
+                     (println "adding reaction:" emoji)
+                     (-> (slack/reactions-add SLACK-TOKEN emoji channel ts)
+                         (d/catch #(println "unable to add reaction:" %))))))))))))
+    (catch Exception e (println "exception in maybe-speak:" e))))
 
 (def disconnect rtm/stop-real-time!)
 
