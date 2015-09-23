@@ -50,15 +50,15 @@
   (when UPDATE-CHAIN
     (when (and
            (= type "message")
-           (not= (:subtype event) "bot_message"))
+           (not= (:subtype event) "bot_message")
+           (not (empty? text)))
       (let [start-time (coerce/to-long (time/now))
             self-id (team/self-id)
             me? (= user self-id)
             mention? (.startsWith text (str "<@" self-id ">"))]
         (when-not (or me?
                       mention?
-                      (team/bot? user)
-                      (nil? text))
+                      (team/bot? user))
           (try
             (update-chain @chain text)
             (chainz/write-chain-db @chain-db @chain)
